@@ -69,9 +69,3 @@ if (changeTeamLead) {
         }    
     }
 }
-
-
-
-
-
-
