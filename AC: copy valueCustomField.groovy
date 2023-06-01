@@ -1,4 +1,6 @@
 //Скрипт перевод дней в часы исходя из рабочего дня, группы пользователя,  и запись значений в новые поля
+import java.math.BigDecimal
+import java.lang.Double
 import com.atlassian.jira.issue.issuetype.IssueType
 import com.atlassian.jira.bc.project.component.ProjectComponent
 import com.atlassian.jira.user.ApplicationUser
@@ -36,11 +38,9 @@ Collection<MutableIssue> searchIssue (String jqlSearch) {
 
 
 IssueManager issueManager = ComponentAccessor.getIssueManager()
-//MutableIssue issue = issueManager.getIssueObject("AC-538")
+//MutableIssue issue = issueManager.getIssueObject("AC-14")
 ApplicationUser automationUser = ComponentAccessor.userManager.getUserByName('automation')
-//!!!!!!!!!!!!!!
-//Внести изменения если для неактивных карточек заполняем значением ноль
-//!!!!!!!!!!!!!!
+
 
 String projectACJQL = "project=AC and status = 'In Progress'"
 Collection cards = searchIssue (projectACJQL)
@@ -62,12 +62,13 @@ for (issue in cards){
 
     String usernameFieldValue = usernameField.getValue(issue)
     String userGroup = ComponentAccessor.groupManager.isUserInGroup(usernameFieldValue, 'Support Position')
+    log.error ("userGroup  -- >" + userGroup)
     if (userGroup == "true"){
-        Double newValueVacantionRemaining = (vacantionRemainingField.getValue(issue)?: 0 * 7.5
-        Double newValueVacantionRemainingHR = vacantionRemainingHRField.getValue(issue)?: 0 * 7.5 
-        Double newValuefamilyDays = familyDaysField.getValue(issue)?: 0 * 7.5 
-        Double newValuefamilyDaysHR = familyDaysHRField.getValue(issue)?: 0 * 7.5 
-        Double newValuesickDays = sickDaysField.getValue(issue)?: 0 * 7.5   
+        BigDecimal newValueVacantionRemaining =(vacantionRemainingField.getValue(issue) ?: 0) * 7.50
+        BigDecimal newValueVacantionRemainingHR = (vacantionRemainingHRField.getValue(issue)?: 0) * 7.50 
+        BigDecimal newValuefamilyDays = (familyDaysField.getValue(issue)?: 0.0) * 7.50
+        BigDecimal newValuefamilyDaysHR = (familyDaysHRField.getValue(issue)?: 0.0) * 7.50 
+        BigDecimal newValuesickDays = (sickDaysField.getValue(issue) ?: 0.0) * 7.50   
 
         MutableIssue cardIssueToUpate = ComponentAccessor.getIssueManager().getIssueByCurrentKey(issue.getKey())
         cardIssueToUpate.setCustomFieldValue(hoursvacantionRemainingField, newValueVacantionRemaining as Double)
@@ -75,14 +76,14 @@ for (issue in cards){
         cardIssueToUpate.setCustomFieldValue(hoursfamilyDaysField, newValuefamilyDays  as Double)
         cardIssueToUpate.setCustomFieldValue(hoursfamilyDaysHRField, newValuefamilyDaysHR as Double)
         cardIssueToUpate.setCustomFieldValue(hourssickDaysField, newValuesickDays as Double)
-        ComponentAccessor.getIssueManager().updateIssue(automationUser, cardIssueToUpate, EventDispatchOption.ISSUE_UPDATED, false)
+        ComponentAccessor.getIssueManager().updateIssue(automationUser, cardIssueToUpate, EventDispatchOption.ISSUE_UPDATED, false)       
         
     } else {
-        Double newValueVacantionRemaining = (vacantionRemainingField.getValue(issue)?: 0 * 8
-        Double newValueVacantionRemainingHR = vacantionRemainingHRField.getValue(issue)?: 0 * 8 
-        Double newValuefamilyDays = familyDaysField.getValue(issue)?: 0 * 8 
-        Double newValuefamilyDaysHR = familyDaysHRField.getValue(issue)?: 0 * 8 
-        Double newValuesickDays = sickDaysField.getValue(issue)?: 0 * 8 
+        Double newValueVacantionRemaining = (vacantionRemainingField.getValue(issue)?: 0) * 8
+        Double newValueVacantionRemainingHR = (vacantionRemainingHRField.getValue(issue)?: 0) * 8 
+        Double newValuefamilyDays = (familyDaysField.getValue(issue)?: 0) * 8 
+        Double newValuefamilyDaysHR = (familyDaysHRField.getValue(issue)?: 0) * 8 
+        Double newValuesickDays = (sickDaysField.getValue(issue)?: 0) * 8 
 
         MutableIssue cardIssueToUpate = ComponentAccessor.getIssueManager().getIssueByCurrentKey(issue.getKey())
         cardIssueToUpate.setCustomFieldValue(hoursvacantionRemainingField, newValueVacantionRemaining as Double)
