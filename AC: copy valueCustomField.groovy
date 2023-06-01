@@ -239,14 +239,14 @@ if(reqType == 10706){
     //У пользователей группы support рабочий день - 7.5 часов, у остальных - 8 часов
     if (userGroupCheck == "true"){
         if ((remainingVacationDaysValue != null ) || (remainingFamilyDaysValue != null) ) {
-            issuetype.setDescription("You have ${remainingVacationDaysValue / 7.5} vacation days left and ${remainingFamilyDaysValue *0.125 } Family days left")
+            issuetype.setDescription("You have ${remainingVacationDaysValue / 7.5} vacation days left and ${remainingFamilyDaysValue / 7.5 } Family days left")
         } 
         if (remainingVacationDaysValue == 0 && remainingFamilyDaysValue ==0) {
             issuetype.setDescription("You don't have vacation days or family days available")
         }
     } else {
         if ((remainingVacationDaysValue != null ) || (remainingFamilyDaysValue != null) ) {
-            issuetype.setDescription("You have ${remainingVacationDaysValue / 8 } vacation days left and ${remainingFamilyDaysValue *0.125 } Family days left")
+            issuetype.setDescription("You have ${remainingVacationDaysValue / 8 } vacation days left and ${remainingFamilyDaysValue / 8 } Family days left")
         } 
         if (remainingVacationDaysValue == 0 && remainingFamilyDaysValue ==0) {
             issuetype.setDescription("You don't have vacation days or family days available")
