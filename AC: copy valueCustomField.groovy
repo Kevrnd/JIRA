@@ -277,6 +277,8 @@ if(reqType == 10704){
 //..............................................................................................................................................................................?
 //Validator create Issue
 
+package com.slotegrator.projects.TMHRV2
+import java.lang.Double
 import com.atlassian.jira.issue.CustomFieldManager
 import com.atlassian.jira.jql.parser.JqlQueryParser
 import com.atlassian.jira.user.ApplicationUser
@@ -290,8 +292,13 @@ import java.util.Calendar
 import com.slotegrator.projects.TMHRV2.HolidayThisYear
 
 
+
+if (issue.issueType.name != 'Vacation' ) {
+    return
+}
 List<Timestamp> holidays = new HolidayThisYear().holidays
 def daysToDecrease = 0
+BigDecimal hoursInWorkDay = 0 
 ApplicationUser automationUser = ComponentAccessor.getUserManager().getUserByName("automation")
 ApplicationUser currentUser = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
 String currentUserName = currentUser.getUsername()
@@ -300,9 +307,9 @@ String userGroupCheck = ComponentAccessor.groupManager.isUserInGroup(currentUser
 
 Timestamp dueDate_date_timestamp = issue.getDueDate()
 CustomFieldManager cfm = ComponentAccessor.getCustomFieldManager()
-Object customFieldStartDate = cfm.getCustomFieldObject(11016L)
-Object remainingVacationDays = cfm.getCustomFieldObject(12900L)
-Object remainingFamilyDays = cfm.getCustomFieldObject(13100L)
+Object customFieldStartDate = cfm.getCustomFieldObject(11016L)  // change
+Object remainingVacationDays = cfm.getCustomFieldObject(13301L)   // change
+Object remainingFamilyDays = cfm.getCustomFieldObject(13303L)     //change
 Object customFieldTimeofAbsence = cfm.getCustomFieldObject(11100L)
 Calendar calendar = Calendar.getInstance()
 Timestamp start_date_timestamp = issue.getCustomFieldValue(customFieldStartDate)
@@ -313,37 +320,52 @@ def userCardSearchJQL = jqlQueryParser.parseQuery("project = AC and Username  ~ 
 List<Issue> issues = ComponentAccessor.getComponent(SearchService).search(automationUser, userCardSearchJQL, PagerFilter.getUnlimitedFilter()).getResults()
 Issue cardIssue = issues.get(0)
 Double remainingVacationDaysValue = remainingVacationDays.getValue(cardIssue)
-Integer remainingFamilyDaysValue = remainingFamilyDays.getValue(cardIssue)
+Double remainingFamilyDaysValue = remainingFamilyDays.getValue(cardIssue)
 
 calendar.setTime(start_date_timestamp)
-        int dayOfWeeks = calendar.get(Calendar.DAY_OF_WEEK)
-        int timeOfAbsence = issue.getCustomFieldValue(customFieldTimeofAbsence) as int;
-        int timeOfAbsenceSec = timeOfAbsence*3600;
-        if (duedate_minus_start_date == 0){
-            if (!((dayOfWeeks == 1) || (dayOfWeeks == 7) || start_date_timestamp in holidays )) { // 1 - SUN; 7 SUT
-                daysToDecrease = timeOfAbsence/8
+    int dayOfWeeks = calendar.get(Calendar.DAY_OF_WEEK)
+    BigDecimal timeOfAbsence = issue.getCustomFieldValue(customFieldTimeofAbsence) as BigDecimal;// change double
+    if (userGroupCheck == "true"){
+        hoursInWorkDay = 7.5
+    } else {
+        hoursInWorkDay = 8
+    }
+    
+    BigDecimal timeOfAbsenceSec = timeOfAbsence*3600;     
+    if (duedate_minus_start_date == 0){
+        if (!((dayOfWeeks == 1) || (dayOfWeeks == 7) || start_date_timestamp in holidays )) { // 1 - SUN; 7 SUT
+            if ((remainingVacationDaysValue + remainingFamilyDaysValue)  < timeOfAbsence ){
+                throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющейся у вас остаток.")
             }
+            log.error("timeOfAbsence / hoursInWorkDay" + !((timeOfAbsence / hoursInWorkDay == 0.5) || (timeOfAbsence / hoursInWorkDay == 1)))
+            if ( !((timeOfAbsence / hoursInWorkDay == 0.5) || (timeOfAbsence / hoursInWorkDay == 1))) {
+                throw new InvalidInputException("Вы можете взять только половину дня или целый день отпуска.")
+            }
+
         } else {
-            for (int i = 0; i <= duedate_minus_start_date; i++) {
-                calendar.setTime(start_date_timestamp + i)
-                int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-                if ((dayOfWeek == 1) || (dayOfWeek == 7) || start_date_timestamp + i in holidays ) { // 1 - SUN; 7 SUT
-                    continue
-                }
-                daysToDecrease++
+            throw new InvalidInputException("Вы хотите взять отпуск в выходной или праздничный день.")
+        }
+    } else {
+        for (int i = 0; i <= duedate_minus_start_date; i++) {
+            calendar.setTime(start_date_timestamp + i)
+            int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+            if ((dayOfWeek == 1) || (dayOfWeek == 7) || start_date_timestamp + i in holidays ) { // 1 - SUN; 7 SUT
+                continue
             }
-        }
+            daysToDecrease++
+            }
+    }
 
-if (issue.issueType.name == 'Vacation') {
-    if (daysToDecrease > 0){
-        
 
-if (issue.issueType.name == 'Vacation') {
-    if (daysToDecrease > 0){
-        if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  daysToDecrease){
-         throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющейся у Вас остаток.")
-        }
+if (daysToDecrease > 0){
+    if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  daysToDecrease * hoursInWorkDay ){
+        throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющейся у вас остаток.")
+    }
+    if ( timeOfAbsence != (daysToDecrease * hoursInWorkDay) ){
+        throw new InvalidInputException('Проверьте правильность заполнения поля "Time of absence in hours!"')
     }
 }
+
+
 
 
