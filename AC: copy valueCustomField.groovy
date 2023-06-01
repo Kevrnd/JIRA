@@ -331,7 +331,7 @@ calendar.setTime(start_date_timestamp)
         hoursInWorkDay = 8
     }
     
-    BigDecimal timeOfAbsenceSec = timeOfAbsence*3600;     
+    //BigDecimal timeOfAbsenceSec = timeOfAbsence*3600;     
     if (duedate_minus_start_date == 0){
         if (!((dayOfWeeks == 1) || (dayOfWeeks == 7) || start_date_timestamp in holidays )) { // 1 - SUN; 7 SUT
             if ((remainingVacationDaysValue + remainingFamilyDaysValue)  < timeOfAbsence ){
@@ -355,6 +355,17 @@ calendar.setTime(start_date_timestamp)
             daysToDecrease++
             }
     }
+
+
+if (daysToDecrease > 0){
+    if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  (daysToDecrease * hoursInWorkDay/2){
+        throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющейся у вас остаток.")
+    }
+    if ( !(timeOfAbsence == daysToDecrease * hoursInWorkDay || timeOfAbsence == daysToDecrease * hoursInWorkDay - hoursInWorkDay * 0.5) ){
+        throw new InvalidInputException('Проверьте правильность заполнения поля "Time of absence in hours"!')
+    }
+}
+
 
 
 
