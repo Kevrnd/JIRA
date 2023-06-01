@@ -358,7 +358,7 @@ calendar.setTime(start_date_timestamp)
 
 
 if (daysToDecrease > 0){
-    if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  (daysToDecrease * hoursInWorkDay/2){
+    if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  (daysToDecrease * hoursInWorkDay/2)){
         throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющейся у вас остаток.")
     }
     if ( !(timeOfAbsence == daysToDecrease * hoursInWorkDay || timeOfAbsence == daysToDecrease * hoursInWorkDay - hoursInWorkDay * 0.5) ){
