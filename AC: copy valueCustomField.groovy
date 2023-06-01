@@ -274,6 +274,76 @@ if(reqType == 10704){
 
 
 
+//..............................................................................................................................................................................?
+//Validator create Issue
 
+import com.atlassian.jira.issue.CustomFieldManager
+import com.atlassian.jira.jql.parser.JqlQueryParser
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.bc.issue.search.SearchService
+import com.atlassian.jira.web.bean.PagerFilter
+import com.atlassian.jira.component.ComponentAccessor
+import com.opensymphony.workflow.InvalidInputException
+import java.sql.Timestamp
+import java.util.Calendar
+import com.slotegrator.projects.TMHRV2.HolidayThisYear
+
+
+List<Timestamp> holidays = new HolidayThisYear().holidays
+def daysToDecrease = 0
+ApplicationUser automationUser = ComponentAccessor.getUserManager().getUserByName("automation")
+ApplicationUser currentUser = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
+String currentUserName = currentUser.getUsername()
+String userGroupCheck = ComponentAccessor.groupManager.isUserInGroup(currentUserName, 'Support Position')
+
+
+Timestamp dueDate_date_timestamp = issue.getDueDate()
+CustomFieldManager cfm = ComponentAccessor.getCustomFieldManager()
+Object customFieldStartDate = cfm.getCustomFieldObject(11016L)
+Object remainingVacationDays = cfm.getCustomFieldObject(12900L)
+Object remainingFamilyDays = cfm.getCustomFieldObject(13100L)
+Object customFieldTimeofAbsence = cfm.getCustomFieldObject(11100L)
+Calendar calendar = Calendar.getInstance()
+Timestamp start_date_timestamp = issue.getCustomFieldValue(customFieldStartDate)
+def duedate_minus_start_date = issue.getDueDate() - start_date_timestamp
+
+def jqlQueryParser = ComponentAccessor.getComponent(JqlQueryParser)
+def userCardSearchJQL = jqlQueryParser.parseQuery("project = AC and Username  ~ ${currentUserName} and status = 'In Progress'")
+List<Issue> issues = ComponentAccessor.getComponent(SearchService).search(automationUser, userCardSearchJQL, PagerFilter.getUnlimitedFilter()).getResults()
+Issue cardIssue = issues.get(0)
+Double remainingVacationDaysValue = remainingVacationDays.getValue(cardIssue)
+Integer remainingFamilyDaysValue = remainingFamilyDays.getValue(cardIssue)
+
+calendar.setTime(start_date_timestamp)
+        int dayOfWeeks = calendar.get(Calendar.DAY_OF_WEEK)
+        int timeOfAbsence = issue.getCustomFieldValue(customFieldTimeofAbsence) as int;
+        int timeOfAbsenceSec = timeOfAbsence*3600;
+        if (duedate_minus_start_date == 0){
+            if (!((dayOfWeeks == 1) || (dayOfWeeks == 7) || start_date_timestamp in holidays )) { // 1 - SUN; 7 SUT
+                daysToDecrease = timeOfAbsence/8
+            }
+        } else {
+            for (int i = 0; i <= duedate_minus_start_date; i++) {
+                calendar.setTime(start_date_timestamp + i)
+                int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+                if ((dayOfWeek == 1) || (dayOfWeek == 7) || start_date_timestamp + i in holidays ) { // 1 - SUN; 7 SUT
+                    continue
+                }
+                daysToDecrease++
+            }
+        }
+
+if (issue.issueType.name == 'Vacation') {
+    if (daysToDecrease > 0){
+        
+
+if (issue.issueType.name == 'Vacation') {
+    if (daysToDecrease > 0){
+        if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  daysToDecrease){
+         throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющейся у Вас остаток.")
+        }
+    }
+}
 
 
