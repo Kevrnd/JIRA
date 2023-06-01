@@ -94,3 +94,186 @@ for (issue in cards){
         ComponentAccessor.getIssueManager().updateIssue(automationUser, cardIssueToUpate, EventDispatchOption.ISSUE_UPDATED, false)
     }
 }    
+
+//..............................................................................................................................................................................
+//..............................................................................................................................................................................
+//behaviours Инициализатор
+import com.atlassian.jira.util.json.JSONObject
+import com.atlassian.jira.issue.fields.CustomField;
+import com.atlassian.jira.component.ComponentAccessor;
+
+import com.atlassian.jira.jql.parser.JqlQueryParser;
+import com.atlassian.jira.user.ApplicationUser;
+
+import com.atlassian.jira.issue.Issue;
+import com.atlassian.jira.bc.issue.search.SearchService;
+import com.atlassian.jira.web.bean.PagerFilter;
+import com.atlassian.jira.event.type.EventDispatchOption;
+
+import com.slotegrator.projects.TMHRV2.UserVacationReplacementUtil;
+
+def timeOfAbsense = getFieldByName("Time of absence")
+def reqType = getFieldByName("Issue Type").getFormValue()
+
+
+//if sick day
+if(reqType == 10704){
+    //timeOfAbsense.setFormValue("8")
+}
+
+//renaming fields
+getFieldByName("Due Date").setLabel("End Date")
+
+def currentUser = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
+
+///calculate vacations for replacement
+try{
+    ApplicationUser automationUser = ComponentAccessor.getUserManager().getUserByName("automation");
+    CustomField teamLeadFieldObject = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectsByName("Team Lead").iterator().next();
+    CustomField projectManagerFieldObject = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectsByName("Project manager").iterator().next();
+    CustomField replacementFieldObject = ComponentAccessor.getCustomFieldManager().getCustomFieldObjectsByName("Replacement").iterator().next();
+
+    
+
+    String currentUserName = currentUser.getUsername();
+
+    def jqlQueryParser = ComponentAccessor.getComponent(JqlQueryParser)
+
+    def userCardSearchJQL = jqlQueryParser.parseQuery("project = AC and Username  ~ ${currentUserName} and status = 'In Progress'")
+    List<Issue> issues = ComponentAccessor.getComponent(SearchService).search(automationUser, userCardSearchJQL, PagerFilter.getUnlimitedFilter()).getResults()
+
+    Issue cardIssue = issues.get(0);
+
+    try{
+        ApplicationUser replacement = (ApplicationUser)cardIssue.getCustomFieldValue(replacementFieldObject);
+
+        String repalcementUsername = replacement.getUsername();
+
+        UserVacationReplacementUtil userVacationReplacementUtil = new UserVacationReplacementUtil();
+        userVacationReplacementUtil.clearVacationsFromVacationMap(repalcementUsername);
+        ArrayList<JSONObject> vacationsForUser = userVacationReplacementUtil.getVacationsForUser(repalcementUsername);
+        String vacationsString = "Replacement vacations : <br>";
+        for(JSONObject vacationBean in vacationsForUser ){
+            if(( "" + vacationBean.get("summary")).contains("Vacation")){
+                vacationsString += "" + vacationBean.get("summary") + " <br>"
+            }
+        }
+
+        getFieldByName("Replacement").setFormValue(replacement.getUsername());
+        getFieldByName("Replacement").setDescription("" + vacationsString);
+        getFieldByName("Replacement").setReadOnly(true);
+
+
+        /*getFieldByName("Issue Type").setDescription("Setting replacement $repalcementUsername"+ 
+        " for user $currentUserName vacationsForUser $vacationsForUser");
+        */
+
+        //getFieldByName("Issue Type").setDescription("replacing is $repalcementUsername "+vacationsForUser)
+        //ComponentAccessor.getUserPropertyManager().getPropertySet(currentUser).setString("jira.meta.replacementUsername", repalcementUsername);
+        //ComponentAccessor.getUserPropertyManager().getPropertySet(currentUser).setString("jira.meta.replacementVacations", vacationsForUser?.toString());
+
+        //getFieldByName("Issue Type").setDescription("replacing is $repalcementUsername "+vacationsForUser)
+
+    }catch (Exception e){
+
+    }
+
+
+    
+}catch (Exception e){
+    //getFieldByName("Issue Type").setDescription("error is " + e )
+} finally {
+    ComponentAccessor.getJiraAuthenticationContext().setLoggedInUser(currentUser);
+}
+
+
+
+//..............................................................................................................................................................................
+//behaviours Изменния в IssueType 
+import java.lang.Double
+import java.lang.Integer
+import com.atlassian.jira.issue.fields.CustomField;
+import com.atlassian.jira.component.ComponentAccessor;
+
+import com.atlassian.jira.jql.parser.JqlQueryParser;
+import com.atlassian.jira.user.ApplicationUser;
+
+import com.atlassian.jira.issue.Issue;
+import com.atlassian.jira.bc.issue.search.SearchService;
+import com.atlassian.jira.web.bean.PagerFilter;
+
+def reqType = getFieldByName("Issue Type").getFormValue()
+ApplicationUser automationUser = ComponentAccessor.getUserManager().getUserByName("automation");
+
+
+
+
+
+
+def currentUser = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
+
+def remainingHomeOfficeDays = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(12902L);
+def remainingVacationDays = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(13301L);
+def remainingFamilyDays = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(13303L);
+def remainingSickDays = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(13305L);
+
+
+
+
+String currentUserName = currentUser.getUsername();
+String userGroupCheck = ComponentAccessor.groupManager.isUserInGroup(currentUserName, 'Support Position')
+
+def jqlQueryParser = ComponentAccessor.getComponent(JqlQueryParser)
+
+def userCardSearchJQL = jqlQueryParser.parseQuery("project = AC and Username  ~ ${currentUserName} and status = 'In Progress'")
+List<Issue> issues = ComponentAccessor.getComponent(SearchService).search(automationUser, userCardSearchJQL, PagerFilter.getUnlimitedFilter()).getResults()
+Issue cardIssue = issues.get(0);
+def issuetype = getFieldByName("Issue Type")
+//change double
+Double remainingVacationDaysValue = remainingVacationDays.getValue(cardIssue)
+Double remainingFamilyDaysValue = remainingFamilyDays.getValue(cardIssue)
+Integer remainingHomeOfficeDaysValue = remainingHomeOfficeDays.getValue(cardIssue)
+Double remainingSickDaysValue = remainingSickDays.getValue(cardIssue)
+//Vacation
+if(reqType == 10706){
+    //У пользователей группы support рабочий день - 7.5 часов, у остальных - 8 часов
+    if (userGroupCheck == "true"){
+        if ((remainingVacationDaysValue != null ) || (remainingFamilyDaysValue != null) ) {
+            issuetype.setDescription("You have ${remainingVacationDaysValue / 7.5} vacation days left and ${remainingFamilyDaysValue *0.125 } Family days left")
+        } 
+        if (remainingVacationDaysValue == 0 && remainingFamilyDaysValue ==0) {
+            issuetype.setDescription("You don't have vacation days or family days available")
+        }
+    } else {
+        if ((remainingVacationDaysValue != null ) || (remainingFamilyDaysValue != null) ) {
+            issuetype.setDescription("You have ${remainingVacationDaysValue / 8 } vacation days left and ${remainingFamilyDaysValue *0.125 } Family days left")
+        } 
+        if (remainingVacationDaysValue == 0 && remainingFamilyDaysValue ==0) {
+            issuetype.setDescription("You don't have vacation days or family days available")
+        }
+
+    }
+}
+//Home Office
+if(reqType == 10703){
+    if (remainingHomeOfficeDaysValue != null) {
+        issuetype.setDescription("You have ${remainingHomeOfficeDaysValue} home office days left")
+        }
+}
+//Sick Days
+if(reqType == 10704){
+    if (remainingSickDaysValue != null) {
+        //У пользователей группы support рабочий день - 7.5 часов, у остальных - 8 часов
+        if (userGroupCheck == "true"){
+            issuetype.setDescription("You have ${remainingSickDaysValue / 7.5 } sick days left")
+        } else {
+            issuetype.setDescription("You have ${remainingSickDaysValue / 8 } sick days left")
+        }
+    }
+}
+
+
+
+
+
+
