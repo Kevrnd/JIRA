@@ -361,11 +361,8 @@ if (daysToDecrease > 0){
     if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  daysToDecrease * hoursInWorkDay ){
         throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющейся у вас остаток.")
     }
-    if ( timeOfAbsence != (daysToDecrease * hoursInWorkDay) ){
-        throw new InvalidInputException('Проверьте правильность заполнения поля "Time of absence in hours!"')
+    if ( !(timeOfAbsence == daysToDecrease * hoursInWorkDay || timeOfAbsence == daysToDecrease * hoursInWorkDay - hoursInWorkDay * 0.5) ){
+        throw new InvalidInputException('Проверьте правильность заполнения поля "Time of absence in hours"!')
     }
 }
-
-
-
 
