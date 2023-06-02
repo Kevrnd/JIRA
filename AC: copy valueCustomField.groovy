@@ -652,3 +652,59 @@ if (daysToDecrease > 0){
     }
 }
 
+
+
+
+
+//..........................................................................POST FUNCTION....................................................................................................?
+//Переход Valid (Списание из полей Actual HR in hours)
+import com.atlassian.jira.event.type.EventDispatchOption
+import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.issue.fields.CustomField
+import com.atlassian.jira.issue.CustomFieldManager
+import com.atlassian.jira.jql.parser.JqlQueryParser
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.issue.Issue
+import com.atlassian.jira.bc.issue.search.SearchService
+import com.atlassian.jira.web.bean.PagerFilter
+import com.atlassian.jira.component.ComponentAccessor
+import com.atlassian.jira.issue.Issue
+
+
+
+
+
+CustomFieldManager cfm = ComponentAccessor.getCustomFieldManager()
+ApplicationUser automationUser = ComponentAccessor.getUserManager().getUserByName("automation")
+String reporterUserName = issue.getReporter().getUsername()
+ComponentAccessor.getJiraAuthenticationContext().setLoggedInUser(automationUser)
+def jqlQueryParser = ComponentAccessor.getComponent(JqlQueryParser)
+def userCardSearchJQL = jqlQueryParser.parseQuery("project = AC and Username  ~ ${reporterUserName} and status = 'In Progress'")
+List<Issue> issues = ComponentAccessor.getComponent(SearchService).search(automationUser, userCardSearchJQL, PagerFilter.getUnlimitedFilter()).getResults()
+Issue cardIssue = issues.get(0)
+String issue_type = issue.getIssueType().getName()
+
+//Vacantion
+if(issue_type == 'Vacation') {
+    Double timeOfAbsence = cfm.getCustomFieldObject(11100L).getValue(issue) as Double
+    if(timeOfAbsence > 0){
+        CustomField vacationCountHrFieldObject = cfm.getCustomFieldObject(13302L)
+        CustomField familyDaysCountHrFieldObject = cfm.getCustomFieldObject(13304L)
+        Double vacationsHrLeft = (Double) cardIssue.getCustomFieldValue(vacationCountHrFieldObject)
+        Double familyDaysHrLeft = (Double) cardIssue.getCustomFieldValue(familyDaysCountHrFieldObject)
+        if (vacationsHrLeft >= timeOfAbsence){
+            vacationsHrLeft -= timeOfAbsence
+            MutableIssue cardIssueToUpate = ComponentAccessor.getIssueManager().getIssueByCurrentKey(cardIssue.getKey());
+            cardIssueToUpate.setCustomFieldValue(vacationCountHrFieldObject,vacationsHrLeft );
+            ComponentAccessor.getIssueManager().updateIssue(automationUser, cardIssueToUpate, EventDispatchOption.ISSUE_UPDATED, false)
+        } else if (vacationsHrLeft < timeOfAbsence){
+            familyDaysHrLeft = familyDaysHrLeft - (timeOfAbsence - vacationsHrLeft)
+            vacationsHrLeft = 0
+            MutableIssue cardIssueToUpate = ComponentAccessor.getIssueManager().getIssueByCurrentKey(cardIssue.getKey())
+            cardIssueToUpate.setCustomFieldValue(vacationCountHrFieldObject,vacationsHrLeft )
+            cardIssueToUpate.setCustomFieldValue(familyDaysCountHrFieldObject, familyDaysHrLeft  )
+            ComponentAccessor.getIssueManager().updateIssue(automationUser, cardIssueToUpate, EventDispatchOption.ISSUE_UPDATED, false)
+        }
+    }
+}
+
