@@ -68,14 +68,16 @@ for (issue in cards){
         BigDecimal newValueVacantionRemainingHR = (vacantionRemainingHRField.getValue(issue)?: 0) * 7.50 
         BigDecimal newValuefamilyDays = (familyDaysField.getValue(issue)?: 0.0) * 7.50
         BigDecimal newValuefamilyDaysHR = (familyDaysHRField.getValue(issue)?: 0.0) * 7.50 
-        BigDecimal newValuesickDays = (sickDaysField.getValue(issue) ?: 0.0) * 7.50   
+        // Раскоментить когда будем менять логику списания для SickDay
+        //BigDecimal newValuesickDays = (sickDaysField.getValue(issue) ?: 0.0) * 7.50   
 
         MutableIssue cardIssueToUpate = ComponentAccessor.getIssueManager().getIssueByCurrentKey(issue.getKey())
         cardIssueToUpate.setCustomFieldValue(hoursvacantionRemainingField, newValueVacantionRemaining as Double)
         cardIssueToUpate.setCustomFieldValue(hoursvacantionRemainingHRField, newValueVacantionRemainingHR as Double)
         cardIssueToUpate.setCustomFieldValue(hoursfamilyDaysField, newValuefamilyDays  as Double)
         cardIssueToUpate.setCustomFieldValue(hoursfamilyDaysHRField, newValuefamilyDaysHR as Double)
-        cardIssueToUpate.setCustomFieldValue(hourssickDaysField, newValuesickDays as Double)
+        // Раскоментить когда будем менять логику списания для SickDay
+        //cardIssueToUpate.setCustomFieldValue(hourssickDaysField, newValuesickDays as Double)
         ComponentAccessor.getIssueManager().updateIssue(automationUser, cardIssueToUpate, EventDispatchOption.ISSUE_UPDATED, false)       
         
     } else {
@@ -83,17 +85,20 @@ for (issue in cards){
         Double newValueVacantionRemainingHR = (vacantionRemainingHRField.getValue(issue)?: 0) * 8 
         Double newValuefamilyDays = (familyDaysField.getValue(issue)?: 0) * 8 
         Double newValuefamilyDaysHR = (familyDaysHRField.getValue(issue)?: 0) * 8 
-        Double newValuesickDays = (sickDaysField.getValue(issue)?: 0) * 8 
+        // Раскоментить когда будем менять логику списания для SickDay
+        //Double newValuesickDays = (sickDaysField.getValue(issue)?: 0) * 8 
 
         MutableIssue cardIssueToUpate = ComponentAccessor.getIssueManager().getIssueByCurrentKey(issue.getKey())
         cardIssueToUpate.setCustomFieldValue(hoursvacantionRemainingField, newValueVacantionRemaining as Double)
         cardIssueToUpate.setCustomFieldValue(hoursvacantionRemainingHRField, newValueVacantionRemainingHR as Double)
         cardIssueToUpate.setCustomFieldValue(hoursfamilyDaysField, newValuefamilyDays  as Double)
         cardIssueToUpate.setCustomFieldValue(hoursfamilyDaysHRField, newValuefamilyDaysHR as Double)
-        cardIssueToUpate.setCustomFieldValue(hourssickDaysField, newValuesickDays as Double)
+        // Раскоментить когда будем менять логику списания для SickDay
+        //cardIssueToUpate.setCustomFieldValue(hourssickDaysField, newValuesickDays as Double)
         ComponentAccessor.getIssueManager().updateIssue(automationUser, cardIssueToUpate, EventDispatchOption.ISSUE_UPDATED, false)
     }
 }    
+
 
 //..............................................................................................................................................................................
 //..............................................................................................................................................................................
@@ -118,7 +123,7 @@ def reqType = getFieldByName("Issue Type").getFormValue()
 
 //if sick day
 if(reqType == 10704){
-    //timeOfAbsense.setFormValue("8")
+    //timeOfAbsense.setFormValue("8")   // Comment 
 }
 
 //renaming fields
@@ -204,21 +209,11 @@ import com.atlassian.jira.web.bean.PagerFilter;
 
 def reqType = getFieldByName("Issue Type").getFormValue()
 ApplicationUser automationUser = ComponentAccessor.getUserManager().getUserByName("automation");
-
-
-
-
-
-
 def currentUser = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
-
 def remainingHomeOfficeDays = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(12902L);
 def remainingVacationDays = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(13301L);
 def remainingFamilyDays = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(13303L);
 def remainingSickDays = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(13305L);
-
-
-
 
 String currentUserName = currentUser.getUsername();
 String userGroupCheck = ComponentAccessor.groupManager.isUserInGroup(currentUserName, 'Support Position')
@@ -229,7 +224,6 @@ def userCardSearchJQL = jqlQueryParser.parseQuery("project = AC and Username  ~ 
 List<Issue> issues = ComponentAccessor.getComponent(SearchService).search(automationUser, userCardSearchJQL, PagerFilter.getUnlimitedFilter()).getResults()
 Issue cardIssue = issues.get(0);
 def issuetype = getFieldByName("Issue Type")
-//change double
 Double remainingVacationDaysValue = remainingVacationDays.getValue(cardIssue)
 Double remainingFamilyDaysValue = remainingFamilyDays.getValue(cardIssue)
 Integer remainingHomeOfficeDaysValue = remainingHomeOfficeDays.getValue(cardIssue)
@@ -239,7 +233,7 @@ if(reqType == 10706){
     //У пользователей группы support рабочий день - 7.5 часов, у остальных - 8 часов
     if (userGroupCheck == "true"){
         if ((remainingVacationDaysValue != null ) || (remainingFamilyDaysValue != null) ) {
-            issuetype.setDescription("You have ${remainingVacationDaysValue / 7.5} vacation days left and ${remainingFamilyDaysValue / 7.5 } Family days left")
+            issuetype.setDescription("You have ${remainingVacationDaysValue / 7.5 } vacation days left and ${remainingFamilyDaysValue / 7.5 } Family days left")
         } 
         if (remainingVacationDaysValue == 0 && remainingFamilyDaysValue ==0) {
             issuetype.setDescription("You don't have vacation days or family days available")
@@ -358,9 +352,11 @@ calendar.setTime(start_date_timestamp)
 
 
 if (daysToDecrease > 0){
-    if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  (daysToDecrease * hoursInWorkDay/2)){
+    //Проверка имеющегося остатка дней у пользователя с учетом календаря (Выходные и праздники не учитываются)
+    if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  (daysToDecrease * hoursInWorkDay - (hoursInWorkDay * 0.5) )) {
         throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющейся у вас остаток.")
     }
+    // Проверка заполнения поля при условии, что пользователь может взять X дней + 0.5 дня
     if ( !(timeOfAbsence == daysToDecrease * hoursInWorkDay || timeOfAbsence == daysToDecrease * hoursInWorkDay - hoursInWorkDay * 0.5) ){
         throw new InvalidInputException('Проверьте правильность заполнения поля "Time of absence in hours"!')
     }
@@ -369,15 +365,8 @@ if (daysToDecrease > 0){
 
 
 
-
-
-
 //..........................................................................POST FUNCTION....................................................................................................?
 //POST FUNCTION com/slotegrator/projects/TMHRV2/logTempoTimeFromTMHR.groovy
-
-
-
-
 
 
 package com.slotegrator.projects.TMHRV2
@@ -411,7 +400,7 @@ import com.slotegrator.projects.TMHRV2.HolidayThisYear
 
 
 
-Issue issue = ComponentAccessor.getIssueManager().getIssueObject('TMHRV2-4164')
+//Issue issue = ComponentAccessor.getIssueManager().getIssueObject("")
 //Вместе с датами сюда не забыть внести плавающие даты в темпо: https://jira.platform.live/secure/Tempo.jspa#/settings/holidays
 //в 2023 в 2023 плавающие даты были толкьо у пасхи 7-10 апреля
 /*
@@ -485,10 +474,12 @@ try{
         calendar.setTime(start_date_timestamp)
         int dayOfWeeks = calendar.get(Calendar.DAY_OF_WEEK)        
         Double timeOfAbsence = cfm.getCustomFieldObject(11100L).getValue(issue) as Double;
+           log.error( "timeOfAbsence-->" + timeOfAbsence + "hoursInWorkDay-->" + hoursInWorkDay )
         int timeOfAbsenceSec = timeOfAbsence as int * 3600
         if (duedate_minus_start_date == 0){
             if (!((dayOfWeeks == 1) || (dayOfWeeks == 7) || start_date_timestamp in holidays )) { // 1 - SUN; 7 SUT
                 daysToDecrease = timeOfAbsence / hoursInWorkDay
+                log.error("daysToDecrease-->" + daysToDecrease + "timeOfAbsence-->" + timeOfAbsence + "hoursInWorkDay-->" + hoursInWorkDay )
                 logTimeTempo(timeOfAbsenceSec, 'INT-1', start_date_timestamp, 0, issue)
             }
         } else {
@@ -513,6 +504,8 @@ try{
         Double remainingVacationDaysValue = remainingVacationDays.getValue(cardIssue)
         Double remainingFamilyDaysValue = remainingFamilyDays.getValue(cardIssue)
         if(daysToDecrease > 0){
+            log.error("daysToDecrease" + daysToDecrease )
+            log.error ("remainingVacationDaysValue >= timeOfAbsence" + (remainingVacationDaysValue >= timeOfAbsence))
             if (remainingVacationDaysValue  >= timeOfAbsence ){            
                 remainingVacationDaysValue -= timeOfAbsence
                 MutableIssue cardIssueToUpate = ComponentAccessor.getIssueManager().getIssueByCurrentKey(cardIssue.getKey());
@@ -643,21 +636,11 @@ def logTimeTempo(Long timeToLog, String issueKeyforLog, Timestamp startDate, int
     issue_for_logging.timeSpent = worklogsTimeSpentTotal
 }
 
-if (daysToDecrease > 0){
-    if ((remainingVacationDaysValue + remainingFamilyDaysValue) <  daysToDecrease * hoursInWorkDay ){
-        throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющейся у вас остаток.")
-    }
-    if ( !(timeOfAbsence == daysToDecrease * hoursInWorkDay || timeOfAbsence == daysToDecrease * hoursInWorkDay - hoursInWorkDay * 0.5) ){
-        throw new InvalidInputException('Проверьте правильность заполнения поля "Time of absence in hours"!')
-    }
-}
-
-
-
-
 
 //..........................................................................POST FUNCTION....................................................................................................?
 //Переход Valid (Списание из полей Actual HR in hours)
+package com.slotegrator.projects.TMHRV2
+import com.atlassian.jira.issue.IssueManager
 import com.atlassian.jira.event.type.EventDispatchOption
 import com.atlassian.jira.issue.MutableIssue
 import com.atlassian.jira.issue.fields.CustomField
@@ -669,8 +652,6 @@ import com.atlassian.jira.bc.issue.search.SearchService
 import com.atlassian.jira.web.bean.PagerFilter
 import com.atlassian.jira.component.ComponentAccessor
 import com.atlassian.jira.issue.Issue
-
-
 
 
 
@@ -694,6 +675,7 @@ if(issue_type == 'Vacation') {
         Double familyDaysHrLeft = (Double) cardIssue.getCustomFieldValue(familyDaysCountHrFieldObject)
         if (vacationsHrLeft >= timeOfAbsence){
             vacationsHrLeft -= timeOfAbsence
+            log.warn ("Issue--> " + issue.getKey() + " Card--> " + cardIssue.getKey() + "New value Vacantion Actual HR-->" + vacationsHrLeft)
             MutableIssue cardIssueToUpate = ComponentAccessor.getIssueManager().getIssueByCurrentKey(cardIssue.getKey());
             cardIssueToUpate.setCustomFieldValue(vacationCountHrFieldObject,vacationsHrLeft );
             ComponentAccessor.getIssueManager().updateIssue(automationUser, cardIssueToUpate, EventDispatchOption.ISSUE_UPDATED, false)
@@ -701,10 +683,11 @@ if(issue_type == 'Vacation') {
             familyDaysHrLeft = familyDaysHrLeft - (timeOfAbsence - vacationsHrLeft)
             vacationsHrLeft = 0
             MutableIssue cardIssueToUpate = ComponentAccessor.getIssueManager().getIssueByCurrentKey(cardIssue.getKey())
+            log.warn ("Issue--> " + issue.getKey() + " Card--> " + cardIssue.getKey() + " New value Vacantion Actual HR--> " + vacationsHrLeft + " New value FamilyDays Actual HR--> " + familyDaysHrLeft)
             cardIssueToUpate.setCustomFieldValue(vacationCountHrFieldObject,vacationsHrLeft )
             cardIssueToUpate.setCustomFieldValue(familyDaysCountHrFieldObject, familyDaysHrLeft  )
             ComponentAccessor.getIssueManager().updateIssue(automationUser, cardIssueToUpate, EventDispatchOption.ISSUE_UPDATED, false)
         }
     }
 }
-
+    
