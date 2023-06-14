@@ -1,4 +1,3 @@
-package com.slotegrator.projects.js
 import com.atlassian.jira.event.type.EventDispatchOption
 import java.util.List
 import com.atlassian.jira.bc.project.component.ProjectComponent
@@ -29,8 +28,8 @@ CustomField cfType = ComponentAccessor.getCustomFieldManager().getCustomFieldObj
 boolean checkFieldAddUser = cfType.getValue(issue).toString().equals('Добавить пользователя')
 boolean checkFieldBlockUser = cfType.getValue(issue).toString().equals('Заблокировать пользователя')
 ApplicationUser loggedInUser = ComponentAccessor.userManager.getUserByName('automation')
-List<ApplicationUser> observers  = []
-
+CustomField observersField = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(10529L)  
+def observers  = issue.getCustomFieldValue(observersField) ?: []
 if ( !(checkFieldBlockUser || checkFieldAddUser)) {
     return 
 }
@@ -38,6 +37,7 @@ if ( !(checkFieldBlockUser || checkFieldAddUser)) {
 Collection<ProjectComponent> listComponent = issue.getComponents()
 //create subtask
 for (component in listComponent){  
+
     Object issueSummary = issue.getSummary()
     // the summary of the new issue
     String summary = component.name  +" "+ issueSummary
@@ -72,7 +72,8 @@ for (component in listComponent){
     }
 }
 
-CustomField observersField = ComponentAccessor.getCustomFieldManager().getCustomFieldObject(10529L)  
-log.warn ("For Issue--> " + issue.getKey() + " Users added as Observers --> " + observers.name)
+
+log.warn ("For Issue--> " + issue.getKey() + " Users added as Observers --> " + observers)
+
 issue.setCustomFieldValue(observersField, observers) 
 issueManager.updateIssue(loggedInUser, issue, EventDispatchOption.DO_NOT_DISPATCH, false)
