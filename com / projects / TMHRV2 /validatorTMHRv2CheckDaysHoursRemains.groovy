@@ -19,8 +19,8 @@ if (! (issue.issueType.name == 'Vacation' || issue.issueType.name == 'Sick day')
     return 
 } 
 List<Timestamp> holidays = new HolidayThisYear().holidays
-def daysToDecrease = 0
-BigDecimal hoursInWorkDay = 0 
+def daysToDecrease = 0.0
+BigDecimal hoursInWorkDay = 0.0
 ApplicationUser automationUser = ComponentAccessor.getUserManager().getUserByName("automation")
 ApplicationUser currentUser = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
 String currentUserName = currentUser.getUsername()
@@ -157,9 +157,36 @@ switch (issue.issueType.name){
     case 'Sick day' :
     // Для пользователей из группы Support
     if (userGroupCheck == "true"){
-        hoursInWorkDay = 7.5 
-        throw new InvalidInputException("STOP TRUE")
+        hoursInWorkDay = 7.5
+        //Проверка отпуска на один день
+        if (duedate_minus_start_date == 0) {
+            //Количество часов соотвествует  одному рабочему дню или половине исходя из группы пользователя
+            if (timeOfAbsence / hoursInWorkDay != 0.5 && timeOfAbsence / hoursInWorkDay != 1) {
+                throw new InvalidInputException("Вы можете взять только половину дня или целый день отпуска.")
+            }
+            // Проверяем, превышает ли запрошенное количество часов отпуска имеющийся остаток у пользователя
+            if (remainingSickDayValue < timeOfAbsence) {
+                throw new InvalidInputException("Количество часов отпуска в задаче превышает имеющийся у вас остаток.")
+            }
+        } else if (duedate_minus_start_date > 0) {
+            for (int i = 0; i <= duedate_minus_start_date; i++) {
+                daysToDecrease++
+            }
+        }
+        if (daysToDecrease >0) {
+        // Проверка имеющегося остатка дней у пользователя
+            if (remainingSickDayValue < daysToDecrease * hoursInWorkDay - (hoursInWorkDay * 0.5)) {
+                throw new InvalidInputException("Количество дней отпуска в задаче превышает имеющийся у вас остаток.")
+            }
+            // Проверка заполнения поля при условии, что пользователь может взять X дней + 0.5 дня
+            if (!(timeOfAbsence == daysToDecrease * hoursInWorkDay || timeOfAbsence == daysToDecrease * hoursInWorkDay - hoursInWorkDay * 0.5)) {
+                String suffix = hoursSuffix((daysToDecrease * hoursInWorkDay- hoursInWorkDay * 0.5) as int)
+                throw new InvalidInputException("Проверьте правильность заполнения поля 'Time of absence in hours'! \
+                    Вы можете указать ${daysToDecrease * hoursInWorkDay}\
+                    или ${daysToDecrease * hoursInWorkDay - hoursInWorkDay * 0.5} час${suffix}.")
 
+            }
+        }
     // Для пользователей не входящих в группу Support
     } else {
         hoursInWorkDay = 8
