@@ -19,7 +19,7 @@ IssueManager issueManager = ComponentAccessor.getIssueManager()
 ProjectManager projectManager = ComponentAccessor.getProjectManager()
 MutableIssue issue = issueManager.getIssueObject("BF-1448")
 
-// Change issue type
+// Check issue type
 if (issue.issueType.name != "Business Feature"){
     log.warn (issue.issueType.name)
     return
@@ -37,9 +37,9 @@ def createLinkedEpic(MutableIssue issue, String projectKey) {
     ProjectManager projectManager = ComponentAccessor.projectManager
     Project project = projectManager.getProjectObjByKey(projectKey)    
     String projectName = project ? project.getName() : null   
-    //CustomField projectToChooseField = customFieldManager.getCustomFieldObject(10900L)
+
     CustomField parentLinkField = customFieldManager.getCustomFieldObject(10112L)
-    //Project projectChoose =  projectToChooseField.getValue(issue)
+
     String assigneUser = issue.assignee ? issue.assignee.getName() : "automation"
     //String projectLead = project ? project.getProjectLead() : null
     String reporterUser = issue.reporter.getName()
@@ -54,7 +54,7 @@ def createLinkedEpic(MutableIssue issue, String projectKey) {
     setIssueTypeId('10000')
     setAssigneeId(assigneUser)
     setReporterId(reporterUser)
-    setSummary(originalSummary)
+    setSummary(epicSummary)
     setDescription(originalDescription)
     setPriorityId(priorityId)
     addCustomFieldValue(10103L, epicNameFieldValue)
@@ -76,9 +76,6 @@ def createLinkedEpic(MutableIssue issue, String projectKey) {
 
 }
 
-
-
-
 CustomField  customFieldP2ProjectPicker= customFieldManager.getCustomFieldObject(13307L)
 def p2ProjectPickerValue =customFieldP2ProjectPicker.getValue(issue)
 
@@ -98,11 +95,7 @@ if (p2ProjectPickerValue == null) {
 } else {
     Long p2ProjectPickerValueLong = p2ProjectPickerValue.first() as Long
     Project projectInFieldp2ProjectPicker = projectManager.getProjectObj(p2ProjectPickerValueLong)
-    createLinkedEpic(issue, projectInFieldp2ProjectPicker.getKey())
+    if (projectInFieldp2ProjectPicker.name != "!_Sample_Platform_2 Project"){
+        createLinkedEpic(issue, projectInFieldp2ProjectPicker.getKey())
+    }
 }
-
-
-
-
-
-
