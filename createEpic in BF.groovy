@@ -97,9 +97,8 @@ if (p2ProjectPickerValue == null) {
     log.warn(p2Projects)
 } else {
     Long p2ProjectPickerValueLong = p2ProjectPickerValue.first() as Long
-    Project projectInFieldp2ProjectPicker = projectManager.getProjectObj(p2ProjectPickerValueLong) 
-    
-    //createLinkedEpic(issue, project.getKey())    
+    Project projectInFieldp2ProjectPicker = projectManager.getProjectObj(p2ProjectPickerValueLong)
+    createLinkedEpic(issue, projectInFieldp2ProjectPicker.getKey())
 }
 
 
