@@ -18,7 +18,7 @@ ApplicationUser automationUser = ComponentAccessor.userManager.getUserByName('au
 String issueTypeId = issue.getIssueType().getId()
 Project issueProject = issue.getProjectObject()
 String issueProjectKey = issue.getProjectObject().getKey()
-if (! (issueTypeId == "10002" && issueProjectKey == "CCR") ){ //Только для типа задач Task???
+if (! (issueTypeId == "10002" && (issueProjectKey == "CCR" || issueProjectKey == "ROC") ) ){ //Только для типа задач Task???
     return
 }
 Collection<Version> fixVersions = issue.getFixVersions()
