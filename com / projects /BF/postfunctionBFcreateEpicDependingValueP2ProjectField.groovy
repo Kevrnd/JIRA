@@ -1,4 +1,7 @@
-/*   JS-7530	[Jira] Автоматизация создания Epic  */
+package com.slotegrator.projects.BF
+/*   JS-7530	[Jira] Автоматизация создания Epic
+* СОздание эпика, копирование Attachments в зависимости от значений в полях
+* */
 import com.atlassian.jira.issue.attachment.Attachment
 import com.atlassian.jira.issue.AttachmentManager
 import com.atlassian.jira.issue.ModifiedValue
@@ -20,7 +23,9 @@ import com.atlassian.jira.user.ApplicationUser
 
 IssueManager issueManager = ComponentAccessor.getIssueManager()
 ProjectManager projectManager = ComponentAccessor.getProjectManager()
-//MutableIssue issue = issueManager.getIssueObject("BF-3200")
+CustomFieldManager customFieldManager = ComponentAccessor.getCustomFieldManager()
+//MutableIssue issue = issueManager.getIssueObject("")
+
 log.warn ("Issue Type-->" + issue.issueType.name + "  IssueKey-->" + issue.key)
 // Check issue type
 if (issue.issueType.name != "Product request"){
@@ -28,7 +33,12 @@ if (issue.issueType.name != "Product request"){
     return
 }
 
-
+// Check value field  bf type
+CustomField bfTypeField = customFieldManager.getCustomFieldObject(13310L)
+String bfTypeFieldValue = bfTypeField.getValue(issue)
+if (bfTypeFieldValue != "api change") {
+    return
+}
 // Create epic (IssueKey in which the epic is created, projectKey in which the epic is created)
 
 def createLinkedEpic(MutableIssue issue, String projectKey) {
@@ -79,14 +89,14 @@ def createLinkedEpic(MutableIssue issue, String projectKey) {
 }
 
 
-CustomFieldManager customFieldManager = ComponentAccessor.getCustomFieldManager()
-CustomField  customFieldP2ProjectPicker= customFieldManager.getCustomFieldObject(13307L)
+
+CustomField  customFieldP2ProjectPicker= customFieldManager.getCustomFieldObject(13309L)
 def p2ProjectPickerValue = customFieldP2ProjectPicker.getValue(issue)
 
 if (p2ProjectPickerValue == null) {
     log.warn ("Поле P2 Projects не заполненно для ${issue.key}")
     return
-} else if (p2ProjectPickerValue.first() == "All P2 Projects"){
+} else if (p2ProjectPickerValue == "All P2 Projects"){
     List<Project> projects = projectManager.getProjectObjects()
     List<Project> p2Projects = projects.findAll { project ->
         project.getProjectCategory()?.getId() ==  10300L && project.name != "!_Sample_Platform_2 Project"   //категория "P2 projects" и исключаем проект "!_Sample_Platform_2 Project"
@@ -96,11 +106,18 @@ if (p2ProjectPickerValue == null) {
     }
     log.warn(p2Projects)
 } else {
-    Long p2ProjectPickerValueLong = p2ProjectPickerValue.first() as Long
+    Long p2ProjectPickerValueLong = p2ProjectPickerValue as Long
     Project projectInFieldp2ProjectPicker = projectManager.getProjectObj(p2ProjectPickerValueLong)
     if (projectInFieldp2ProjectPicker.name != "!_Sample_Platform_2 Project"){
         createLinkedEpic(issue, projectInFieldp2ProjectPicker.getKey())
     }
 }
+
+
+
+
+
+
+
 
 
