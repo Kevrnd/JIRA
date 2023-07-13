@@ -1,0 +1,38 @@
+import com.atlassian.jira.issue.changehistory.ChangeHistoryManager
+import com.atlassian.jira.user.ApplicationUser
+import com.atlassian.jira.event.type.EventDispatchOption
+import com.atlassian.jira.issue.MutableIssue
+import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.component.ComponentAccessor
+
+
+
+IssueManager issueManager = ComponentAccessor.getIssueManager()
+//MutableIssue issue = issueManager.getIssueObject("")
+String issueTypeId = issue.getIssueType().id
+if (issueTypeId != "10004"){
+    return
+}
+
+String projectKey = issue.getProjectObject().getKey()
+if (projectKey != "CCR" && projectKey != "ROC" ){
+    return
+}
+
+ChangeHistoryManager changeHistoryManager = ComponentAccessor.getChangeHistoryManager()
+def changeItem = changeHistoryManager.getChangeItemsForField(issue, 'status')?.last()
+if (changeItem?.fromString != "Deploy on UAT"){
+    return
+}
+
+def issueReporter = issue.getReporter()
+ApplicationUser automationUser = ComponentAccessor.userManager.getUserByName('automation')
+
+if (issueReporter) {
+    issue.setAssignee(issueReporter)
+
+    issueManager.updateIssue(automationUser, issue, EventDispatchOption.ISSUE_UPDATED, false)
+    log.warn("Asiignee в задаче ${issue.getKey()} изменен на  '${issueReporter.name}'")
+} else {
+    log.warn("Пользователь '${issueReporter}' не найден.")
+}
